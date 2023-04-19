@@ -26,7 +26,7 @@ function App() {
 
   const onSubmit = async (event) => {
     event.preventDefault();
-    setConversation([...conversation, playerInput]);
+    setConversation([...conversation, { role: "user", content: playerInput }]);
     setPlayerInput("");
     const response = await api.userMessage({ message: playerInput });
 
@@ -36,7 +36,10 @@ function App() {
   useEffect(() => {
     api.handleAIResponse({
       handler: (response) => {
-        setConversation([...conversation, response]);
+        setConversation([
+          ...conversation,
+          { role: "assistant", content: response },
+        ]);
       },
     });
   }, [conversation]);
@@ -46,8 +49,18 @@ function App() {
       <div className="Conversation">
         {conversation.map((item, index) => {
           return (
-            <div key={index} className="conversation-item">
-              {item}
+            <div
+              key={index}
+              style={{
+                padding: "10px",
+                borderRadius: "4px",
+                textAlign: "left",
+                color: "white",
+                background: item.role === "user" ? "purple" : "blue",
+              }}
+              className="conversation-item"
+            >
+              {item.content}
             </div>
           );
         })}

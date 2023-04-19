@@ -20,7 +20,7 @@ body {
 /* terminal styles */
 
 ::-webkit-scrollbar {
-  background: #000;
+  background: #5b5a5a;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -36,7 +36,6 @@ body {
 }
 
 #terminal-wrapper {
-  padding: 3px;
   background-color: black
 }
 
@@ -47,9 +46,11 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
+  height: calc(100vh - 420px);
 }
 
 .Conversation {
+  overflow-y: scroll;
   flex: 1 1 auto;
   padding: 10px;
   background-color: rgb(50, 49, 53);
