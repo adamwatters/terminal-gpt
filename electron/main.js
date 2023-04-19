@@ -5,6 +5,8 @@ const isDev = require("electron-is-dev");
 const pty = require("node-pty");
 const os = require("os");
 const shell = os.platform() === "win32" ? "powershell.exe" : "zsh";
+const dotenv = require("dotenv");
+dotenv.config();
 
 const createWindow = () => {
   // Create the browser window.
@@ -42,23 +44,17 @@ const createWindow = () => {
   }
 
   ptyProcess.onData(function (data) {
-    // mainWindow is not defined here
-    console.log("in onData");
-    console.log(data);
     win.webContents.send("terminal-incomingData", data);
   });
 
   // handle is two way communication - expects an async return
   ipcMain.handle("user-message", async (_, { message }) => {
-    console.log(message);
     const response = await ai.prompt(message);
     return response;
   });
 
   // on is one way communication - no return
   ipcMain.on("terminal-keystroke", (_, { key }) => {
-    console.log("in terminal-keystroke handler");
-    console.log(key);
     ptyProcess.write(key);
   });
 };

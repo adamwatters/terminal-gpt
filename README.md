@@ -11,7 +11,7 @@ How to dev
 
 ### NEXT TODO:
 
-[] fix .env
+[]
 
 ### DONE:
 
@@ -21,3 +21,4 @@ How to dev
 [x] pass message to gpt4 and return result
 [x] system prompt for gpt4
 [x] handle gpt terminal input
+[x] use .env for api key

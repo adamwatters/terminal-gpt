@@ -1,5 +1,6 @@
 const { Configuration, OpenAIApi } = require("openai");
 const { systemPrompt } = require("./systemPrompt.js");
+const { makeDebounced } = require("./helpers.js");
 
 const AI = (apiKey, terminal, send) => {
   const configuration = new Configuration({
@@ -8,9 +9,13 @@ const AI = (apiKey, terminal, send) => {
   const openai = new OpenAIApi(configuration);
   const conversation = [];
 
-  terminal.onData((data) => {
+  const debouncedUpdateGPT = makeDebounced((data) => {
+    console.log("sending to gpt");
     console.log(data);
+  }, 1000);
 
+  terminal.onData((data) => {
+    debouncedUpdateGPT(data);
     // PROBLEM: things like installing dependencies make a ton of data updates. maybe this is as simple as debouncing.
     // send to gpt
   });
