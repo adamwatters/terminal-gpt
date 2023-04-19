@@ -11,7 +11,8 @@ How to dev
 
 ### NEXT TODO:
 
-[]
+[] use the special "write" function
+[] use the special "newTerminal"
 
 ### DONE:
 
