@@ -1,14 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Terminal } from "xterm";
 import "./App.css";
 import "xterm/css/xterm.css";
 const api = window.electronAPI;
 
 var term = new Terminal();
-term.open(document.getElementById("terminal"));
-term.write(
-  "🤖 🤝 🧑 \x1B[1;3;31mthis terminal can be used by you and gpt \x1B[0m $ "
-);
 
 api.handleTerminalData({
   handler: (data) => {
@@ -23,15 +19,38 @@ term.onData((key) => {
 function App() {
   const [playerInput, setPlayerInput] = useState("");
   const [conversation, setConversation] = useState([]);
+  const [terminalMounted, setTerminalMounted] = useState(false);
+  const chatScrollRef = useRef(null);
+  const xtermRef = useRef(null);
 
   const onSubmit = async (event) => {
     event.preventDefault();
     setConversation([...conversation, { role: "user", content: playerInput }]);
     setPlayerInput("");
     const response = await api.userMessage({ message: playerInput });
-
     // TODO: do something with this response - disable button, show loading, show error, etc.
   };
+
+  useEffect(() => {
+    console.log("terminal mounted", terminalMounted);
+    if (!terminalMounted) {
+      const termElement = xtermRef.current;
+      if (termElement.children.length === 0) {
+        term.open(termElement);
+        term.write(
+          "🤖 🤝 🧑 \x1B[1;3;31mthis terminal can be used by you and gpt \x1B[0m $ "
+        );
+        setTerminalMounted(true);
+      }
+    }
+  }, [terminalMounted]);
+
+  // scroll to bottom of chat
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [conversation]);
 
   useEffect(() => {
     api.handleAIResponse({
@@ -46,7 +65,7 @@ function App() {
 
   return (
     <div className="App">
-      <div className="Conversation">
+      <div ref={chatScrollRef} className="Conversation">
         {conversation.map((item, index) => {
           return (
             <div
@@ -89,6 +108,10 @@ function App() {
           disabled={!playerInput || !playerInput.trim()}
         />
       </form>
+      <div className="bottom-row">
+        <div ref={xtermRef} id="terminal"></div>
+        <div className="text-editor">documents go here</div>
+      </div>
     </div>
   );
 }

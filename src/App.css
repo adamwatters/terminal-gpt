@@ -35,18 +35,14 @@ body {
   padding: 2px;
 }
 
-#terminal-wrapper {
-  background-color: black
-}
-
 /* app styles */
 
 .App {
-  text-align: center;
+  text-align: left;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  height: calc(100vh - 420px);
+  height: calc(100vh);
 }
 
 .Conversation {
@@ -80,4 +76,20 @@ body {
 .user-input_submit-button:hover {
   background-color: rgb(12, 105, 105);
   cursor: pointer;
+}
+
+.bottom-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.text-editor {
+  color: white;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow-y: scroll;
+  background-color: black
 }

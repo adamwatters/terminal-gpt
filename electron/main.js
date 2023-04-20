@@ -11,8 +11,8 @@ dotenv.config();
 const createWindow = () => {
   // Create the browser window.
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 1000,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
@@ -20,7 +20,7 @@ const createWindow = () => {
 
   var ptyProcess = pty.spawn(shell, [], {
     name: "xterm-color",
-    cols: 80,
+    cols: 60,
     rows: 30,
     cwd: process.env.HOME,
     env: process.env,

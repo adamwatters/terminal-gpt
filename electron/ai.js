@@ -1,7 +1,21 @@
 const { Configuration, OpenAIApi } = require("openai");
+const fs = require("fs");
+
 const { systemPrompt } = require("./systemPrompt.js");
+const { callFromString } = require("./callFromString.js");
+
+// i forget how to write js... so I'm doing this closure thing for now
+let activeTerminal;
 
 const AI = (apiKey, terminal, send) => {
+  activeTerminal = terminal;
+
+  // add a listener to the terminal to update the GPT. if we change the terminal we'll leave this in place for now.
+  // ai will only be able to write to the last terminal added
+  terminal.onData((data) => {
+    debouncedUpdateGPT(data);
+  });
+
   const configuration = new Configuration({
     apiKey,
   });
@@ -22,21 +36,45 @@ const AI = (apiKey, terminal, send) => {
     return completion;
   }
 
+  const specialFunctions = {
+    newTerminal(path) {
+      console.log("newTerminal called");
+    },
+    writeToFile(fileName, content) {
+      console.log(fileName);
+      console.log("writeToFile called");
+    },
+    remember(meta, content) {
+      console.log("remember called");
+    },
+  };
+
   async function gpt() {
     try {
-      console.log(conversation);
       const completion = await generate();
       let newAnswer = completion.data.choices[0].message;
-      const patternToMatchApiCalls = /\[\[.*?\]\]/g;
-      const calls = newAnswer.content.match(patternToMatchApiCalls);
-      conversation.push(newAnswer);
-      if (calls) {
-        terminal.write(`${calls[0].substring(2, calls[0].length - 2)} \n`);
-      }
-      const sanitizedAnswer = newAnswer.content.replace(
-        patternToMatchApiCalls,
-        ""
+      const patternToMatchTerminalCommands = /\[\[.*?\]\]/g;
+      const commands = newAnswer.content.match(patternToMatchTerminalCommands);
+      const patternToMatchSpecialFunctions =
+        /{{\s*([a-zA-Z_]\w*)(\s*\(\s*([\w\s,]*)\s*\))?\s*}}/g;
+      const specialFunctionCalls = newAnswer.content.match(
+        patternToMatchSpecialFunctions
       );
+      conversation.push(newAnswer);
+      console.log(conversation);
+      if (specialFunctionCalls) {
+        specialFunctionCalls.forEach((call) => {
+          callFromString(call, specialFunctions);
+        });
+      }
+      if (commands) {
+        activeTerminal.write(
+          `${commands[0].substring(2, commands[0].length - 2)} \n`
+        );
+      }
+      const sanitizedAnswer = newAnswer.content
+        .replace(patternToMatchTerminalCommands, "")
+        .replace(patternToMatchSpecialFunctions, "");
       send(sanitizedAnswer);
       return sanitizedAnswer;
       // update the conversation in firebase
@@ -91,12 +129,14 @@ const AI = (apiKey, terminal, send) => {
     };
   })();
 
-  terminal.onData((data) => {
-    debouncedUpdateGPT(data);
-  });
-
   return {
     apiKey: apiKey,
+    addTerminal: (terminal) => {
+      // main.js should update the frontend here
+      terminal.onData((data) => {
+        debouncedUpdateGPT(data);
+      });
+    },
     prompt: async (input) => {
       if (!input || input.trim().length === 0) {
         return "Please enter a valid message";
