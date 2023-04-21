@@ -4,7 +4,7 @@ import "./App.css";
 import "xterm/css/xterm.css";
 const api = window.electronAPI;
 
-var term = new Terminal();
+var term = new Terminal({ convertEol: true });
 
 api.handleTerminalData({
   handler: (data) => {
@@ -19,7 +19,6 @@ term.onData((key) => {
 function App() {
   const [playerInput, setPlayerInput] = useState("");
   const [conversation, setConversation] = useState([]);
-  const [terminalMounted, setTerminalMounted] = useState(false);
   const chatScrollRef = useRef(null);
   const xtermRef = useRef(null);
 
@@ -32,18 +31,35 @@ function App() {
   };
 
   useEffect(() => {
-    console.log("terminal mounted", terminalMounted);
-    if (!terminalMounted) {
-      const termElement = xtermRef.current;
-      if (termElement.children.length === 0) {
-        term.open(termElement);
-        term.write(
-          "🤖 🤝 🧑 \x1B[1;3;31mthis terminal can be used by you and gpt \x1B[0m $ "
-        );
-        setTerminalMounted(true);
-      }
+    const termElement = xtermRef.current;
+    let terminalInitialized = false;
+    const debouncedInitialize = (() => {
+      let timerId;
+      return function () {
+        if (timerId) {
+          clearTimeout(timerId);
+        }
+        timerId = setTimeout(() => {
+          console.log("sending terminal ready");
+          api.sendTerminalReady();
+          terminalInitialized = true;
+        }, 1000);
+      };
+    })();
+    if (termElement.children.length === 0) {
+      console.log("initializing terminal");
+      term.open(termElement);
+      term.onRender(() => {
+        if (!terminalInitialized) {
+          debouncedInitialize();
+        }
+        terminalInitialized = true;
+      });
+      term.onLineFeed(() => {
+        console.log("line feed");
+      });
     }
-  }, [terminalMounted]);
+  }, []);
 
   // scroll to bottom of chat
   useEffect(() => {

@@ -43,7 +43,12 @@ const createWindow = () => {
     win.webContents.openDevTools({ mode: "detach" });
   }
 
+  ipcMain.on("terminal-ready", (_) => {
+    ptyProcess.write("pwd \n");
+  });
+
   ptyProcess.onData(function (data) {
+    console.log("data", data);
     win.webContents.send("terminal-incomingData", data);
   });
 

@@ -2,7 +2,6 @@ const { Configuration, OpenAIApi } = require("openai");
 const fs = require("fs");
 
 const { systemPrompt } = require("./systemPrompt.js");
-const { callFromString } = require("./callFromString.js");
 
 // i forget how to write js... so I'm doing this closure thing for now
 let activeTerminal;
@@ -13,6 +12,7 @@ const AI = (apiKey, terminal, send) => {
   // add a listener to the terminal to update the GPT. if we change the terminal we'll leave this in place for now.
   // ai will only be able to write to the last terminal added
   terminal.onData((data) => {
+    console.log("data", data);
     debouncedUpdateGPT(data);
   });
 
@@ -26,7 +26,7 @@ const AI = (apiKey, terminal, send) => {
     const completion = await openai.createChatCompletion({
       model: "gpt-4",
       frequency_penalty: 1,
-      max_tokens: 1000,
+      max_tokens: 2048,
       presence_penalty: 1,
       stream: false,
       temperature: 0.8,
@@ -40,9 +40,11 @@ const AI = (apiKey, terminal, send) => {
     newTerminal(path) {
       console.log("newTerminal called");
     },
-    writeToFile(fileName, content) {
-      console.log(fileName);
-      console.log("writeToFile called");
+    writeToFile(path, content) {
+      console.log(content);
+      let docAsString = content.join("\n");
+      console.log(docAsString);
+      fs.writeFileSync(path, docAsString);
     },
     remember(meta, content) {
       console.log("remember called");
@@ -53,10 +55,12 @@ const AI = (apiKey, terminal, send) => {
     try {
       const completion = await generate();
       let newAnswer = completion.data.choices[0].message;
-      const patternToMatchTerminalCommands = /\[\[.*?\]\]/g;
+      console.log(JSON.stringify(completion.data.usage));
+      const patternToMatchTerminalCommands =
+        /<\s*COMMAND\s*>[\s\S]*?<\s*\/\s*COMMAND\s*>/g;
       const commands = newAnswer.content.match(patternToMatchTerminalCommands);
       const patternToMatchSpecialFunctions =
-        /{{\s*([a-zA-Z_]\w*)(\s*\(\s*([\w\s,]*)\s*\))?\s*}}/g;
+        /<\s*FUNC\s*>[\s\S]*?<\s*\/\s*FUNC\s*>/g;
       const specialFunctionCalls = newAnswer.content.match(
         patternToMatchSpecialFunctions
       );
@@ -64,13 +68,34 @@ const AI = (apiKey, terminal, send) => {
       console.log(conversation);
       if (specialFunctionCalls) {
         specialFunctionCalls.forEach((call) => {
-          callFromString(call, specialFunctions);
+          let jsonString = call.replace("<FUNC>", "").replace("</FUNC>", "");
+          console.log("jsonString");
+          console.log(jsonString);
+          try {
+            let json = JSON.parse(jsonString);
+            if (json.name === "newTerminal") {
+              specialFunctions.newTerminal(json.path);
+            }
+            if (json.name === "writeToFile") {
+              specialFunctions.writeToFile(json.path, json.content);
+            }
+          } catch (error) {
+            console.log("error parsing json");
+            console.log(error);
+            conversation.push({
+              role: "user",
+              content: `Something went wrong parsing the JSON in your <FUNC></FUNC> call. Here's the error: ${error}`,
+            });
+            gpt(); // send the parse error back to gpt and let it try to fix it
+            return;
+          }
         });
       }
       if (commands) {
-        activeTerminal.write(
-          `${commands[0].substring(2, commands[0].length - 2)} \n`
-        );
+        let firstCommand = commands[0]
+          .replace("<COMMAND>", "")
+          .replace("</COMMAND>", "");
+        activeTerminal.write(`${firstCommand} \n`);
       }
       const sanitizedAnswer = newAnswer.content
         .replace(patternToMatchTerminalCommands, "")
