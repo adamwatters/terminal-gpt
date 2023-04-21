@@ -11,8 +11,8 @@ How to dev
 
 ### NEXT TODO:
 
-[] use the special "write" function
-[] use the special "newTerminal"
+[] give gpt control of the order it calls commands and special functions.
+[] test change
 
 ### DONE:
 
