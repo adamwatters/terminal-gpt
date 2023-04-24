@@ -13,7 +13,7 @@ const AI = (apiKey, terminal, send) => {
   // ai will only be able to write to the last terminal added
   terminal.onData((data) => {
     console.log("data", data);
-    debouncedUpdateGPT(data);
+    // debouncedUpdateGPT(data);
   });
 
   const configuration = new Configuration({
@@ -55,54 +55,30 @@ const AI = (apiKey, terminal, send) => {
     try {
       const completion = await generate();
       let newAnswer = completion.data.choices[0].message;
-      console.log(JSON.stringify(completion.data.usage));
-      const patternToMatchTerminalCommands =
-        /<\s*COMMAND\s*>[\s\S]*?<\s*\/\s*COMMAND\s*>/g;
-      const commands = newAnswer.content.match(patternToMatchTerminalCommands);
-      const patternToMatchSpecialFunctions =
-        /<\s*FUNC\s*>[\s\S]*?<\s*\/\s*FUNC\s*>/g;
-      const specialFunctionCalls = newAnswer.content.match(
-        patternToMatchSpecialFunctions
-      );
       conversation.push(newAnswer);
-      console.log(conversation);
-      if (specialFunctionCalls) {
-        specialFunctionCalls.forEach((call) => {
-          let jsonString = call.replace("<FUNC>", "").replace("</FUNC>", "");
-          console.log("jsonString");
-          console.log(jsonString);
-          try {
-            let json = JSON.parse(jsonString);
-            if (json.name === "newTerminal") {
-              specialFunctions.newTerminal(json.path);
-            }
-            if (json.name === "writeToFile") {
-              specialFunctions.writeToFile(json.path, json.content);
-            }
-          } catch (error) {
-            console.log("error parsing json");
-            console.log(error);
-            conversation.push({
-              role: "user",
-              content: `Something went wrong parsing the JSON in your <FUNC></FUNC> call. Here's the error: ${error}`,
-            });
-            gpt(); // send the parse error back to gpt and let it try to fix it
-            return;
+      let content = newAnswer.content;
+      let json = JSON.parse(content);
+      console.log(json);
+      if (json.actions) {
+        let actions = json.actions;
+        let i = 0;
+        while (i < actions.length) {
+          let action = actions[i];
+          console.log(action);
+
+          // handle actions here
+          if (action.type === "terminal") {
+            activeTerminal.write(`${action.input} \n`);
           }
-        });
+
+          if (action.type === "message") {
+            send(action.content.join("\n"));
+          }
+
+          i++;
+        }
       }
-      if (commands) {
-        let firstCommand = commands[0]
-          .replace("<COMMAND>", "")
-          .replace("</COMMAND>", "");
-        activeTerminal.write(`${firstCommand} \n`);
-      }
-      const sanitizedAnswer = newAnswer.content
-        .replace(patternToMatchTerminalCommands, "")
-        .replace(patternToMatchSpecialFunctions, "");
-      send(sanitizedAnswer);
-      return sanitizedAnswer;
-      // update the conversation in firebase
+      console.log(JSON.stringify(completion.data.usage));
     } catch (error) {
       // Consider adjusting the error handling logic for your use case
       if (error.response) {
@@ -158,6 +134,7 @@ const AI = (apiKey, terminal, send) => {
     apiKey: apiKey,
     addTerminal: (terminal) => {
       // main.js should update the frontend here
+      // we're not using this yet
       terminal.onData((data) => {
         debouncedUpdateGPT(data);
       });

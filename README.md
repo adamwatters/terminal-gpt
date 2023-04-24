@@ -23,3 +23,9 @@ How to dev
 [x] system prompt for gpt4
 [x] handle gpt terminal input
 [x] use .env for api key
+
+### IDEAS:
+
+[] screen.log for history
+[] strip ansi
+[] use gpt3-5 for json reformatting

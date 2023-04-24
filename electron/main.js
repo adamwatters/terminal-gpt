@@ -44,11 +44,11 @@ const createWindow = () => {
   }
 
   ipcMain.on("terminal-ready", (_) => {
-    ptyProcess.write("pwd \n");
+    // we might send an initial message here with terminal info
+    // ptyProcess.write("pwd \n");
   });
 
   ptyProcess.onData(function (data) {
-    console.log("data", data);
     win.webContents.send("terminal-incomingData", data);
   });
 
