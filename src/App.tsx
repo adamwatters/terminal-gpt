@@ -6,7 +6,8 @@ const api = window.electronAPI;
 
 var term = new Terminal({ convertEol: true });
 
-api.handleTerminalData({
+api.attachHandler({
+  channel: "terminal-incomingData",
   handler: (data) => {
     term.write(data);
   },
@@ -19,6 +20,7 @@ term.onData((key) => {
 function App() {
   const [playerInput, setPlayerInput] = useState("");
   const [conversation, setConversation] = useState([]);
+  const [aiState, setAiState] = useState("ready");
   const chatScrollRef = useRef(null);
   const xtermRef = useRef(null);
 
@@ -69,7 +71,18 @@ function App() {
   }, [conversation]);
 
   useEffect(() => {
-    api.handleAIResponse({
+    api.attachHandler({
+      channel: "ai-state-update",
+      handler: (update) => {
+        console.log("update", update);
+        setAiState(update);
+      },
+    });
+  }, []);
+
+  useEffect(() => {
+    api.attachHandler({
+      channel: "ai-response",
       handler: (response) => {
         setConversation([
           ...conversation,
@@ -118,7 +131,7 @@ function App() {
           onChange={(e) => setPlayerInput(e.target.value)}
         />
         <input
-          className="user-input_submit-button"
+          className={`user-input_submit-button ${aiState}`}
           type="submit"
           value={"Send"}
           disabled={!playerInput || !playerInput.trim()}

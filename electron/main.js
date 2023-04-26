@@ -27,9 +27,7 @@ const createWindow = () => {
   });
 
   const { AI } = require("./ai.js");
-  const ai = AI(process.env.OPENAI_API_KEY, ptyProcess, (data) => {
-    win.webContents.send("ai-response", data);
-  });
+  const ai = AI(process.env.OPENAI_API_KEY, ptyProcess, win.webContents);
 
   // and load the index.html of the app.
   // win.loadFile("index.html");
@@ -44,8 +42,9 @@ const createWindow = () => {
   }
 
   ipcMain.on("terminal-ready", (_) => {
-    // we might send an initial message here with terminal info
-    // ptyProcess.write("pwd \n");
+    setTimeout(() => {
+      ai.start();
+    }, 1000);
   });
 
   ptyProcess.onData(function (data) {

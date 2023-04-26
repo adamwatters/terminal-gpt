@@ -9,8 +9,7 @@ declare global {
       userMessage: ({ message: string }) => {};
       sendTerminalKeystroke: ({ key: string }) => {};
       sendTerminalReady: () => {};
-      handleTerminalData: ({ handler: any }) => {};
-      handleAIResponse: ({ handler: any }) => {};
+      attachHandler: ({ channel: string, handler: any }) => {};
     };
   }
 }
